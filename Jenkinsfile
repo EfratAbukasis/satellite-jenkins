@@ -50,13 +50,12 @@ pipeline {
     }
 
     stage('Satellite Signal Analysis') {
-         steps {
-            unstash 'satellite-build'
+      
       parallel {
 
         stage('Analyze Orbital Signals') {
           steps {
-
+             unstash 'satellite-build'
             retry(2) {
               echo "Analyzing orbital signals (retry demo)..."
               bat '''
@@ -74,48 +73,44 @@ pipeline {
 
         stage('Analyze Sensor Signals') {
           steps {
+            unstash 'satellite-build'
             echo "Analyzing sensor signals..."
-            bat '''
-            type %DATA_DIR%\\sensor.txt
-            '''
+            bat "type %DATA_DIR%\\sensor.txt"           
             sleep time: 4, unit: 'SECONDS'
           }
         }
 
         stage('Validate Combined Data') {
           steps {
+            unstash 'satellite-build'
             echo "Validating combined data..."
-            bat '''
-            type build\\combined_signal.txt
-            '''
+            bat "type build\\combined_signal.txt"            
             sleep time: 4, unit: 'SECONDS'
           }
         }
 
         stage('Analyze Fuel Status'){
               steps{
+                unstash 'satellite-build'
                 retry(2){
                    echo "Checking if fuel data exists"
-                    bat'''
-                if not exist fuel.marker (
-                echo First attempt failed > fuel.marker
-                exit /b 1
-               )
-               echo Step passed
-               type %DATA_DIR%\\fuel.txt
-                
-                ''' 
-                sleep time:2, unit:'SECONDS'
+                   bat'''
+                   if not exist fuel.marker (
+                   echo First attempt failed > fuel.marker
+                   exit /b 1
+                   )
+                   echo Step passed
+                   type %DATA_DIR%\\fuel.txt
+                   ''' 
+                   sleep time:2, unit:'SECONDS'
                 }
                 
-                
-                sleep time:2, unit:'SECONDS'
               }
         }
 
       }
      }
-    }
+    
     stage('Print Branch Name') {
         steps {
             echo "The current branch is: ${env.BRANCH_NAME}"
@@ -172,6 +167,10 @@ pipeline {
     }
 
     stage('Deploy Satellite Processing System') {
+        when {
+        branch 'main'
+        environment name: 'APP_ENV', value: 'staging'
+      }
       steps {
         echo "Deploying processed signal system..."
         bat '''
