@@ -34,7 +34,7 @@ pipeline {
         bat '''
         echo ORBIT_SIGNAL > %DATA_DIR%\\orbit.txt
         echo SENSOR_SIGNAL > %DATA_DIR%\\sensor.txt
-        echo FUEL_LEVEL: 85% > %DATA_DIR%\\fuel.txt
+        echo FUEL_LEVEL: 85%% > %DATA_DIR%\\fuel.txt
         dir %DATA_DIR%
         '''
 
@@ -45,12 +45,13 @@ pipeline {
         '''
 
         echo "Storing build artifacts for future stages..."
-        stash includes: 'build/**', name: 'satellite-build'
+        stash includes: 'build/**, satellite_data/**', name: 'satellite-build'
       }
     }
 
     stage('Satellite Signal Analysis') {
-
+         steps {
+            unstash 'satellite-build'
       parallel {
 
         stage('Analyze Orbital Signals') {
@@ -96,7 +97,7 @@ pipeline {
                 retry(2){
                    echo "Checking if fuel data exists"
                     bat'''
-                if not exist fuel.marker(
+                if not exist fuel.marker (
                 echo First attempt failed > fuel.marker
                 exit /b 1
                )
@@ -113,7 +114,7 @@ pipeline {
         }
 
       }
-
+     }
     }
     stage('Print Branch Name') {
         steps {
@@ -144,8 +145,8 @@ pipeline {
     stage('Secure Deployment Preparation') {
 
       when {
-        expression { env.GIT_BRANCH == 'main' && env.APP_ENV  == 'staging'}
-      }
+         branch 'main' 
+         environment name: 'APP_ENV', value: 'staging'      }
 
       steps {
 
